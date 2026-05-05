@@ -1,0 +1,23 @@
+{
+  "name": "projectdash",
+  "version": "1.0.0",
+  "description": "Projectdash - Convex-backed app",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev:convex": "convex dev",
+    "deploy:convex": "convex deploy",
+    "codegen:convex": "convex codegen",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:34237/git/kevinroypersonal-art/Projectdash"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "convex": "^1.37.0"
+  }
+}
