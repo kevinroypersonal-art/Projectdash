@@ -206,51 +206,215 @@ export function aggregateStats(rows: Position[]) {
 
 export type EquityPoint = { date: string; value: number };
 
+// --- Seeded RNG + helpers ---------------------------------------------------
+
+function mulberry32(a: number) {
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function strHash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function gauss(r: () => number): number {
+  const u1 = Math.max(r(), 1e-12);
+  const u2 = r();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
 /**
- * Daily-compounded NAV curve. Each pick has a constant geometric daily
- * return (entry → current/exit, evenly distributed across calendar days of
- * the hold). On any day t, the portfolio's daily return is the equal-weight
- * average of the daily returns of every pick active that day; NAV compounds
- * from a base of 100 on the inception date.
+ * Generate a daily price path of length `days+1` from `p0` to `pN` (exact
+ * endpoints) by drawing log-return increments with daily vol `sigma` and
+ * applying a constant drift correction so the path lands on `pN`. Visually
+ * indistinguishable from a real stock chart; deterministic given the RNG.
  */
-export function navCurve(
-  rows: Position[] = positions,
-  inception: string = INCEPTION,
-  asOf: string = AS_OF,
-): EquityPoint[] {
-  const dayMs = 86_400_000;
+function pricePath(
+  p0: number,
+  pN: number,
+  days: number,
+  sigma: number,
+  r: () => number,
+): number[] {
+  if (days < 1) return [p0];
+  const log0 = Math.log(p0);
+  const logN = Math.log(pN);
+  const incs: number[] = new Array(days);
+  let sum = 0;
+  for (let i = 0; i < days; i++) {
+    const v = sigma * gauss(r);
+    incs[i] = v;
+    sum += v;
+  }
+  const adjust = (logN - log0 - sum) / days;
+  const path: number[] = new Array(days + 1);
+  path[0] = p0;
+  let logCurr = log0;
+  for (let i = 0; i < days - 1; i++) {
+    logCurr += incs[i]! + adjust;
+    path[i + 1] = Math.exp(logCurr);
+  }
+  path[days] = pN;
+  return path;
+}
+
+// --- SPX series -------------------------------------------------------------
+
+/**
+ * SPX index normalized so that AS_OF = 100. Anchor points are reverse-derived
+ * from the SPY % returns embedded in the position log; intermediate days are
+ * filled with a Brownian bridge so the line carries realistic daily noise
+ * while passing through every anchor.
+ */
+const SPX_ANCHORS: [string, number][] = [
+  ["2022-07-01", 51.0],
+  ["2022-08-01", 56.4],
+  ["2022-09-01", 53.5],
+  ["2022-10-17", 48.2],
+  ["2022-11-01", 53.7],
+  ["2022-12-01", 57.8],
+  ["2023-01-03", 52.2],
+  ["2023-02-01", 53.8],
+  ["2023-02-15", 54.7],
+  ["2023-03-15", 51.5],
+  ["2023-04-17", 55.7],
+  ["2023-05-01", 56.2],
+  ["2023-05-15", 55.7],
+  ["2023-06-01", 56.5],
+  ["2023-07-17", 60.5],
+  ["2023-08-01", 61.7],
+  ["2023-09-15", 60.5],
+  ["2023-10-16", 58.7],
+  ["2023-11-01", 56.7],
+  ["2023-11-15", 60.9],
+  ["2023-12-15", 62.5],
+  ["2024-02-01", 65.5],
+  ["2024-02-15", 67.5],
+  ["2024-03-15", 69.0],
+  ["2024-04-01", 70.8],
+  ["2024-05-15", 71.1],
+  ["2024-06-17", 72.0],
+  ["2024-07-01", 73.8],
+  ["2024-08-15", 74.5],
+  ["2024-09-15", 75.5],
+  ["2024-10-15", 78.6],
+  ["2024-11-15", 79.4],
+  ["2024-12-15", 79.0],
+  ["2025-01-15", 79.0],
+  ["2025-02-15", 81.5],
+  ["2025-03-15", 76.6],
+  ["2025-04-15", 72.9],
+  ["2025-05-15", 79.6],
+  ["2025-06-15", 81.5],
+  ["2025-08-15", 87.1],
+  ["2025-09-15", 89.3],
+  ["2025-10-15", 89.9],
+  ["2025-11-15", 90.3],
+  ["2025-12-15", 92.2],
+  ["2026-01-15", 93.8],
+  ["2026-02-15", 92.1],
+  ["2026-03-15", 90.5],
+  ["2026-04-15", 94.4],
+  ["2026-05-01", 97.7],
+  ["2026-05-11", 100.0],
+];
+
+const DAY_MS = 86_400_000;
+
+function buildSpx(inception: string, asOf: string) {
   const startMs = new Date(inception).getTime();
   const endMs = new Date(asOf).getTime();
+  const totalDays = Math.round((endMs - startMs) / DAY_MS);
+  const values: number[] = new Array(totalDays + 1).fill(0);
 
-  type Pick = { startMs: number; endMs: number; daily: number };
-  const picks: Pick[] = rows.map((r) => {
-    const ps = new Date(r.date).getTime();
-    const pe =
-      r.status === "CLOSED" && r.closeDate
-        ? new Date(r.closeDate).getTime()
+  for (let i = 0; i < SPX_ANCHORS.length - 1; i++) {
+    const [d0, v0] = SPX_ANCHORS[i]!;
+    const [d1, v1] = SPX_ANCHORS[i + 1]!;
+    const ms0 = new Date(d0).getTime();
+    const ms1 = new Date(d1).getTime();
+    if (ms1 < startMs || ms0 > endMs) continue;
+    const n = Math.round((ms1 - ms0) / DAY_MS);
+    const r = mulberry32(strHash(`spx-${d0}-${d1}`));
+    const path = pricePath(v0, v1, n, 0.008, r);
+    const startIdx = Math.round((ms0 - startMs) / DAY_MS);
+    for (let k = 0; k <= n; k++) {
+      const idx = startIdx + k;
+      if (idx >= 0 && idx <= totalDays) values[idx] = path[k]!;
+    }
+  }
+  return values;
+}
+
+// --- Portfolio NAV ----------------------------------------------------------
+
+function buildNav(rows: Position[], inception: string, asOf: string) {
+  const startMs = new Date(inception).getTime();
+  const endMs = new Date(asOf).getTime();
+  const totalDays = Math.round((endMs - startMs) / DAY_MS);
+
+  // Per-pick daily price path with deterministic noise.
+  const pStart: number[] = [];
+  const pEnd: number[] = [];
+  const pPath: number[][] = [];
+  rows.forEach((p, i) => {
+    const ms0 = new Date(p.date).getTime();
+    const ms1 =
+      p.status === "CLOSED" && p.closeDate
+        ? new Date(p.closeDate).getTime()
         : endMs;
-    const days = Math.max(1, Math.round((pe - ps) / dayMs));
-    const totalMult = r.current / r.entry;
-    const daily = Math.pow(totalMult, 1 / days) - 1;
-    return { startMs: ps, endMs: pe, daily };
+    const n = Math.max(1, Math.round((ms1 - ms0) / DAY_MS));
+    const rng = mulberry32(strHash(`${p.ticker}|${p.date}|${i}`));
+    pPath.push(pricePath(p.entry, p.current, n, 0.025, rng));
+    pStart.push(Math.round((ms0 - startMs) / DAY_MS));
+    pEnd.push(Math.round((ms0 - startMs) / DAY_MS) + n);
   });
 
-  const out: EquityPoint[] = [];
+  const values: number[] = new Array(totalDays + 1);
   let nav = 100;
-  for (let t = startMs; t <= endMs; t += dayMs) {
-    if (t > startMs) {
-      let sum = 0;
-      let count = 0;
-      for (const p of picks) {
-        if (p.startMs < t && p.endMs >= t) {
-          sum += p.daily;
-          count += 1;
-        }
+  values[0] = nav;
+  for (let d = 1; d <= totalDays; d++) {
+    let sum = 0;
+    let count = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (d > pStart[i]! && d <= pEnd[i]!) {
+        const off = d - pStart[i]!;
+        const path = pPath[i]!;
+        sum += path[off]! / path[off - 1]! - 1;
+        count += 1;
       }
-      if (count > 0) nav = nav * (1 + sum / count);
     }
-    out.push({ date: new Date(t).toISOString().slice(0, 10), value: nav });
+    if (count > 0) nav *= 1 + sum / count;
+    values[d] = nav;
   }
-  return out;
+  return values;
 }
+
+function buildDates(inception: string, asOf: string) {
+  const startMs = new Date(inception).getTime();
+  const endMs = new Date(asOf).getTime();
+  const totalDays = Math.round((endMs - startMs) / DAY_MS);
+  const dates: string[] = new Array(totalDays + 1);
+  for (let d = 0; d <= totalDays; d++) {
+    dates[d] = new Date(startMs + d * DAY_MS).toISOString().slice(0, 10);
+  }
+  return dates;
+}
+
+export const daily = (() => {
+  const dates = buildDates(INCEPTION, AS_OF);
+  const nav = buildNav(positions, INCEPTION, AS_OF);
+  const spx = buildSpx(INCEPTION, AS_OF);
+  return { dates, nav, spx };
+})();
+
 

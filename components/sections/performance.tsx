@@ -2,88 +2,123 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import {
-  AS_OF,
-  INCEPTION,
-  navCurve,
-  positions,
-  type EquityPoint,
-} from "@/lib/positions";
+import { AS_OF, INCEPTION, daily } from "@/lib/positions";
 import { cn } from "@/lib/utils";
 
-const fullCurve: EquityPoint[] = navCurve(positions, INCEPTION, AS_OF);
 const asOfDate = new Date(AS_OF);
 const inceptionDate = new Date(INCEPTION);
 
 const RANGES = ["1M", "3M", "6M", "YTD", "ALL"] as const;
 type Range = (typeof RANGES)[number];
 
-function rangeStart(range: Range): Date {
+function startIndex(range: Range): number {
+  let target: Date;
   switch (range) {
-    case "1M": {
-      const d = new Date(asOfDate);
-      d.setMonth(d.getMonth() - 1);
-      return d;
-    }
-    case "3M": {
-      const d = new Date(asOfDate);
-      d.setMonth(d.getMonth() - 3);
-      return d;
-    }
-    case "6M": {
-      const d = new Date(asOfDate);
-      d.setMonth(d.getMonth() - 6);
-      return d;
-    }
+    case "1M":
+      target = new Date(asOfDate);
+      target.setMonth(target.getMonth() - 1);
+      break;
+    case "3M":
+      target = new Date(asOfDate);
+      target.setMonth(target.getMonth() - 3);
+      break;
+    case "6M":
+      target = new Date(asOfDate);
+      target.setMonth(target.getMonth() - 6);
+      break;
     case "YTD":
-      return new Date(asOfDate.getFullYear(), 0, 1);
+      target = new Date(asOfDate.getFullYear(), 0, 1);
+      break;
     case "ALL":
-      return inceptionDate;
+      target = inceptionDate;
+      break;
   }
-}
-
-function sliceCurve(range: Range): EquityPoint[] {
-  const start = rangeStart(range).getTime();
-  return fullCurve.filter((p) => new Date(p.date).getTime() >= start);
+  const targetT = target.getTime();
+  for (let i = 0; i < daily.dates.length; i++) {
+    if (new Date(daily.dates[i]!).getTime() >= targetT) return i;
+  }
+  return 0;
 }
 
 const VIEW = { w: 1200, h: 360, padX: 56, padTop: 24, padBottom: 36 };
 
-function buildGeometry(points: EquityPoint[]) {
-  if (points.length < 2) {
-    return null;
-  }
-  const min = Math.min(...points.map((p) => p.value));
-  const max = Math.max(...points.map((p) => p.value));
+type Slice = {
+  dates: string[];
+  nav: number[];
+  spx: number[];
+  navIdx: number[]; // rebased to 100 at window start
+  spxIdx: number[]; // rebased to 100 at window start
+};
+
+function buildSlice(range: Range): Slice {
+  const i0 = startIndex(range);
+  const dates = daily.dates.slice(i0);
+  const nav = daily.nav.slice(i0);
+  const spx = daily.spx.slice(i0);
+  const nav0 = nav[0]!;
+  const spx0 = spx[0]!;
+  const navIdx = nav.map((v) => (v / nav0) * 100);
+  const spxIdx = spx.map((v) => (v / spx0) * 100);
+  return { dates, nav, spx, navIdx, spxIdx };
+}
+
+function buildGeometry(slice: Slice) {
+  if (slice.dates.length < 2) return null;
+  const all = [...slice.navIdx, ...slice.spxIdx];
+  const min = Math.min(...all);
+  const max = Math.max(...all);
   const pad = Math.max((max - min) * 0.08, max * 0.005);
   const yMin = min - pad;
   const yMax = max + pad;
 
-  const startT = new Date(points[0]!.date).getTime();
-  const endT = new Date(points[points.length - 1]!.date).getTime();
+  const startT = new Date(slice.dates[0]!).getTime();
+  const endT = new Date(slice.dates[slice.dates.length - 1]!).getTime();
   const span = endT - startT || 1;
 
   const innerW = VIEW.w - VIEW.padX * 2;
   const innerH = VIEW.h - VIEW.padTop - VIEW.padBottom;
 
-  const xy = points.map((p) => {
-    const t = new Date(p.date).getTime();
-    const x = VIEW.padX + ((t - startT) / span) * innerW;
-    const y =
-      VIEW.padTop + innerH - ((p.value - yMin) / (yMax - yMin)) * innerH;
-    return [x, y] as const;
-  });
+  function xy(series: number[]) {
+    return series.map((v, i) => {
+      const t = new Date(slice.dates[i]!).getTime();
+      const x = VIEW.padX + ((t - startT) / span) * innerW;
+      const y = VIEW.padTop + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
+      return [x, y] as const;
+    });
+  }
 
-  const linePath = xy
-    .map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`)
-    .join(" ");
-  const areaPath = `${linePath} L ${xy[xy.length - 1]![0].toFixed(2)} ${(
+  const navXY = xy(slice.navIdx);
+  const spxXY = xy(slice.spxIdx);
+
+  const toPath = (pts: readonly (readonly [number, number])[]) =>
+    pts
+      .map(
+        ([x, y], i) =>
+          `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`,
+      )
+      .join(" ");
+
+  const navLine = toPath(navXY);
+  const spxLine = toPath(spxXY);
+  const navArea = `${navLine} L ${navXY[navXY.length - 1]![0].toFixed(2)} ${(
     VIEW.padTop + innerH
-  ).toFixed(2)} L ${xy[0]![0].toFixed(2)} ${(VIEW.padTop + innerH).toFixed(
+  ).toFixed(2)} L ${navXY[0]![0].toFixed(2)} ${(VIEW.padTop + innerH).toFixed(
     2,
   )} Z`;
 
-  return { xy, linePath, areaPath, yMin, yMax, innerW, innerH, startT, endT };
+  return {
+    navXY,
+    spxXY,
+    navLine,
+    spxLine,
+    navArea,
+    yMin,
+    yMax,
+    innerW,
+    innerH,
+    startT,
+    endT,
+  };
 }
 
 function xTicks(range: Range, startT: number, endT: number, innerW: number) {
@@ -94,15 +129,14 @@ function xTicks(range: Range, startT: number, endT: number, innerW: number) {
     VIEW.padX + ((t - startT) / (span || 1)) * innerW;
 
   if (range === "ALL") {
-    const startYear = new Date(startT).getFullYear();
-    const endYear = new Date(endT).getFullYear();
-    for (let y = startYear; y <= endYear; y++) {
+    const sy = new Date(startT).getFullYear();
+    const ey = new Date(endT).getFullYear();
+    for (let y = sy; y <= ey; y++) {
       const t = new Date(`${y}-01-01`).getTime();
       if (t < startT || t > endT) continue;
       ticks.push({ x: xFor(t), label: String(y) });
     }
   } else if (range === "YTD" || range === "6M") {
-    // Monthly ticks
     const d = new Date(startT);
     d.setDate(1);
     d.setMonth(d.getMonth() + 1);
@@ -114,7 +148,6 @@ function xTicks(range: Range, startT: number, endT: number, innerW: number) {
       d.setMonth(d.getMonth() + 1);
     }
   } else if (range === "3M") {
-    // Every two weeks
     for (let t = startT + 14 * day; t <= endT; t += 14 * day) {
       const d = new Date(t);
       ticks.push({
@@ -123,7 +156,6 @@ function xTicks(range: Range, startT: number, endT: number, innerW: number) {
       });
     }
   } else {
-    // 1M — weekly
     for (let t = startT + 7 * day; t <= endT; t += 7 * day) {
       const d = new Date(t);
       ticks.push({
@@ -135,43 +167,44 @@ function xTicks(range: Range, startT: number, endT: number, innerW: number) {
   return ticks;
 }
 
+function fmtPct(v: number): string {
+  const s = v >= 0 ? "+" : "";
+  return `${s}${v.toFixed(2)}%`;
+}
+
 function fmtIndex(v: number): string {
   if (v >= 1000) return v.toFixed(0);
   if (v >= 100) return v.toFixed(1);
   return v.toFixed(2);
 }
 
-function fmtPct(v: number): string {
-  const s = v >= 0 ? "+" : "";
-  return `${s}${v.toFixed(2)}%`;
-}
-
 export function Performance() {
   const [range, setRange] = React.useState<Range>("ALL");
-  const data = React.useMemo(() => sliceCurve(range), [range]);
-  const geom = React.useMemo(() => buildGeometry(data), [data]);
+  const slice = React.useMemo(() => buildSlice(range), [range]);
+  const geom = React.useMemo(() => buildGeometry(slice), [slice]);
 
-  if (!geom || data.length === 0) return null;
+  if (!geom) return null;
 
-  const first = data[0]!;
-  const last = data[data.length - 1]!;
-  const periodReturn = (last.value / first.value - 1) * 100;
-  const totalReturn = (last.value / 100 - 1) * 100;
-  const years =
-    (new Date(last.date).getTime() - new Date(first.date).getTime()) /
-    (1000 * 60 * 60 * 24 * 365.25);
-  const cagr =
-    years >= 1 ? (Math.pow(last.value / first.value, 1 / years) - 1) * 100 : null;
+  const navStart = slice.navIdx[0]!;
+  const navEnd = slice.navIdx[slice.navIdx.length - 1]!;
+  const spxEnd = slice.spxIdx[slice.spxIdx.length - 1]!;
+  const navRet = navEnd - 100;
+  const spxRet = spxEnd - 100;
+  const alpha = navRet - spxRet;
 
-  let peak = first.value;
+  const totalNavFromInception = daily.nav[daily.nav.length - 1]! - 100;
+
+  // Max NAV drawdown over the window.
+  let peak = slice.navIdx[0]!;
   let maxDD = 0;
-  for (const p of data) {
-    peak = Math.max(peak, p.value);
-    const dd = (p.value - peak) / peak;
+  for (const v of slice.navIdx) {
+    peak = Math.max(peak, v);
+    const dd = (v - peak) / peak;
     if (dd < maxDD) maxDD = dd;
   }
 
   const ticks = xTicks(range, geom.startT, geom.endT, geom.innerW);
+  const liveNav = daily.nav[daily.nav.length - 1]!;
 
   return (
     <section
@@ -182,7 +215,8 @@ export function Performance() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-fg-muted)]">
-              Daily NAV · base 100 on {INCEPTION}
+              Daily NAV vs SPX · base 100 on{" "}
+              {range === "ALL" ? INCEPTION : slice.dates[0]}
             </span>
             <h2 className="mt-3 font-display text-3xl tracking-display text-white sm:text-4xl">
               Performance
@@ -214,16 +248,20 @@ export function Performance() {
         </div>
 
         <dl className="mt-8 grid grid-cols-2 gap-px border border-[color:var(--color-border)] bg-[color:var(--color-border)] font-mono sm:grid-cols-4">
-          <Stat label="NAV">
-            <span className="text-white">{fmtIndex(last.value)}</span>
-          </Stat>
-          <Stat label={`${range === "ALL" ? "Since inception" : range} return`}>
-            <span className={periodReturn >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
-              {fmtPct(periodReturn)}
+          <Stat label="The Hedge">
+            <span className={navRet >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
+              {fmtPct(navRet)}
             </span>
           </Stat>
-          <Stat label="CAGR">
-            <span className="text-white">{cagr !== null ? fmtPct(cagr) : "—"}</span>
+          <Stat label="SPX">
+            <span className="text-[color:var(--color-fg-muted)]">
+              {fmtPct(spxRet)}
+            </span>
+          </Stat>
+          <Stat label="Alpha">
+            <span className={alpha >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
+              {fmtPct(alpha)}
+            </span>
           </Stat>
           <Stat label="Max drawdown">
             <span className="text-[color:var(--color-fg-subtle)]">
@@ -233,21 +271,28 @@ export function Performance() {
         </dl>
 
         <div className="mt-6 border border-[color:var(--color-border)] bg-[color:var(--color-surface)]/30 p-4 sm:p-6">
+          <div className="mb-4 flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)]">
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-px w-6 bg-white" />
+              The Hedge
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-px w-6 border-t border-dashed border-[color:var(--color-fg-subtle)]" />
+              SPX
+            </span>
+          </div>
+
           <svg
             viewBox={`0 0 ${VIEW.w} ${VIEW.h}`}
             preserveAspectRatio="none"
             className="block h-[300px] w-full sm:h-[360px]"
             role="img"
-            aria-label={`NAV curve, ${range} window`}
+            aria-label={`NAV vs SPX, ${range} window`}
           >
             <defs>
-              <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
+              <linearGradient id="navFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="lineFade" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
               </linearGradient>
             </defs>
 
@@ -267,20 +312,67 @@ export function Performance() {
               );
             })}
 
+            {/* Baseline at index = 100 */}
+            {(() => {
+              const innerH = VIEW.h - VIEW.padTop - VIEW.padBottom;
+              const y =
+                VIEW.padTop +
+                innerH -
+                ((100 - geom.yMin) / (geom.yMax - geom.yMin)) * innerH;
+              return (
+                <>
+                  <line
+                    x1={VIEW.padX}
+                    x2={VIEW.w - VIEW.padX}
+                    y1={y}
+                    y2={y}
+                    stroke="#2a2a2a"
+                    strokeDasharray="3 3"
+                  />
+                  <text
+                    x={VIEW.padX}
+                    y={y - 6}
+                    fill="#525252"
+                    fontFamily="var(--font-mono)"
+                    fontSize="10"
+                    letterSpacing="0.18em"
+                  >
+                    100
+                  </text>
+                </>
+              );
+            })()}
+
             <motion.path
               key={`area-${range}`}
-              d={geom.areaPath}
-              fill="url(#equityFill)"
+              d={geom.navArea}
+              fill="url(#navFill)"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             />
 
+            {/* SPX line — gray dashed */}
             <motion.path
-              key={`line-${range}`}
-              d={geom.linePath}
+              key={`spx-${range}`}
+              d={geom.spxLine}
               fill="none"
-              stroke="url(#lineFade)"
+              stroke="#525252"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+            />
+
+            {/* NAV line — white */}
+            <motion.path
+              key={`nav-${range}`}
+              d={geom.navLine}
+              fill="none"
+              stroke="#ffffff"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -290,9 +382,9 @@ export function Performance() {
             />
 
             <motion.circle
-              key={`dot-${range}`}
-              cx={geom.xy[geom.xy.length - 1]![0]}
-              cy={geom.xy[geom.xy.length - 1]![1]}
+              key={`navdot-${range}`}
+              cx={geom.navXY[geom.navXY.length - 1]![0]}
+              cy={geom.navXY[geom.navXY.length - 1]![1]}
               r="3.5"
               fill="#ffffff"
               initial={{ opacity: 0, scale: 0 }}
@@ -349,10 +441,10 @@ export function Performance() {
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[color:var(--color-border)] pt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-subtle)]">
             <span>
-              {first.date} → {last.date}
+              {slice.dates[0]} → {slice.dates[slice.dates.length - 1]}
             </span>
             <span>
-              Total return since inception {fmtPct(totalReturn)}
+              NAV {fmtIndex(liveNav)} · Since inception {fmtPct(totalNavFromInception)}
             </span>
           </div>
         </div>
