@@ -1,29 +1,28 @@
-# Projectdash
+# The Hedge — Landing Page v1
 
-## Setup
+A personal portfolio, run with conviction, documented in public.
+
+> Most hedge funds hide their plays. The Hedge shows them.
+
+## Stack
+
+- Next.js 15 (App Router, RSC)
+- Tailwind CSS v4
+- Framer Motion (animations + Meteors)
+- Geist Mono / Geist Sans / Inter Tight via `next/font`
+- TypeScript
+
+## Local dev
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in your Convex keys
+npm run dev
 ```
 
-## Convex
+Open http://localhost:3000.
 
-This project uses [Convex](https://convex.dev) as the backend.
+## Editorial / legal
 
-- **Cloud URL**: `https://hardy-gazelle-568.convex.cloud`
-- **HTTP Actions URL**: `https://hardy-gazelle-568.convex.site`
-
-`CONVEX_DEPLOY_KEY` and `CONVEX_URL` live in `.env.local` (gitignored).
-
-### Run the Convex dev server
-
-```bash
-npm run dev:convex
-```
-
-### Deploy
-
-```bash
-npm run deploy:convex
-```
+The Hedge is edited by **Glyphe SASU**, publication de presse financière au sens
+des art. L.621-31 du CMF et 20 du Règlement (UE) n° 596/2014 (MAR). Les
+analyses publiées ne constituent pas un conseil en investissement personnalisé.
