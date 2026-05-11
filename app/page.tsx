@@ -1,5 +1,6 @@
 import { Hero } from "@/components/sections/hero";
 import { Manifesto } from "@/components/sections/manifesto";
+import { Performance } from "@/components/sections/performance";
 import { Positions } from "@/components/sections/positions";
 import { Comparison } from "@/components/sections/comparison";
 import { Method } from "@/components/sections/method";
@@ -12,6 +13,7 @@ export default function Page() {
     <main>
       <Hero />
       <Manifesto />
+      <Performance />
       <Positions />
       <Comparison />
       <Method />
