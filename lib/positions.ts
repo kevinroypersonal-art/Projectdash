@@ -207,46 +207,50 @@ export function aggregateStats(rows: Position[]) {
 export type EquityPoint = { date: string; value: number };
 
 /**
- * Equal-weighted equity index: at each sample date t, every pick contributes its
- * mark-to-market multiplier (1 + return) — realized for closed picks, linearly
- * interpolated for picks still active at t. The index averages those
- * multipliers so the curve reflects book-wide performance from inception.
+ * Daily-compounded NAV curve. Each pick has a constant geometric daily
+ * return (entry → current/exit, evenly distributed across calendar days of
+ * the hold). On any day t, the portfolio's daily return is the equal-weight
+ * average of the daily returns of every pick active that day; NAV compounds
+ * from a base of 100 on the inception date.
  */
-export function equityCurve(
+export function navCurve(
   rows: Position[] = positions,
   inception: string = INCEPTION,
   asOf: string = AS_OF,
-  stepDays = 14,
 ): EquityPoint[] {
-  const start = new Date(inception).getTime();
-  const end = new Date(asOf).getTime();
-  const step = stepDays * 86_400_000;
+  const dayMs = 86_400_000;
+  const startMs = new Date(inception).getTime();
+  const endMs = new Date(asOf).getTime();
+
+  type Pick = { startMs: number; endMs: number; daily: number };
+  const picks: Pick[] = rows.map((r) => {
+    const ps = new Date(r.date).getTime();
+    const pe =
+      r.status === "CLOSED" && r.closeDate
+        ? new Date(r.closeDate).getTime()
+        : endMs;
+    const days = Math.max(1, Math.round((pe - ps) / dayMs));
+    const totalMult = r.current / r.entry;
+    const daily = Math.pow(totalMult, 1 / days) - 1;
+    return { startMs: ps, endMs: pe, daily };
+  });
 
   const out: EquityPoint[] = [];
-  for (let t = start; t <= end; t += step) {
-    let sum = 0;
-    let count = 0;
-    for (const p of rows) {
-      const pickT = new Date(p.date).getTime();
-      if (t < pickT) continue;
-      const closeT =
-        p.status === "CLOSED" && p.closeDate
-          ? new Date(p.closeDate).getTime()
-          : end;
-      const finalR = (p.current - p.entry) / p.entry;
-      let r: number;
-      if (t >= closeT) {
-        r = finalR;
-      } else {
-        const span = closeT - pickT;
-        const progress = span > 0 ? (t - pickT) / span : 1;
-        r = finalR * progress;
+  let nav = 100;
+  for (let t = startMs; t <= endMs; t += dayMs) {
+    if (t > startMs) {
+      let sum = 0;
+      let count = 0;
+      for (const p of picks) {
+        if (p.startMs < t && p.endMs >= t) {
+          sum += p.daily;
+          count += 1;
+        }
       }
-      sum += 1 + r;
-      count += 1;
+      if (count > 0) nav = nav * (1 + sum / count);
     }
-    const value = count > 0 ? (sum / count) * 100 : 100;
-    out.push({ date: new Date(t).toISOString().slice(0, 10), value });
+    out.push({ date: new Date(t).toISOString().slice(0, 10), value: nav });
   }
   return out;
 }
+
