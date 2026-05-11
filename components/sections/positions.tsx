@@ -89,19 +89,28 @@ export function Positions() {
             <tbody>
               {rows.map((p, i) => {
                 const pnl = pctChange(p);
+                // Cap stagger so deep rows don't sit idle for seconds.
+                const delay = Math.min(i, 18) * 0.04;
                 return (
                   <motion.tr
-                    key={`${p.ticker}-${p.date}`}
+                    key={`${p.ticker}-${p.date}-${p.closeDate ?? "open"}`}
                     initial={{ opacity: 0, y: 4 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "0px 0px -8% 0px" }}
-                    transition={{ duration: 0.25, delay: i * 0.04 }}
+                    viewport={{ once: true, margin: "0px 0px -4% 0px" }}
+                    transition={{ duration: 0.25, delay }}
                     className="border-b border-[color:var(--color-border)] transition-colors hover:bg-[color:var(--color-surface)]"
                   >
                     <Td className="text-[color:var(--color-fg-subtle)]">
                       {p.date}
                     </Td>
-                    <Td className="text-white">{p.ticker}</Td>
+                    <Td>
+                      <span className="text-white">{p.ticker}</span>
+                      {p.isWinner ? (
+                        <span className="ml-2 align-middle font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)]">
+                          Winner
+                        </span>
+                      ) : null}
+                    </Td>
                     <Td>
                       <Badge variant="muted">{p.direction}</Badge>
                     </Td>
@@ -109,7 +118,12 @@ export function Positions() {
                       {formatPrice(p.entry)}
                     </Td>
                     <Td className="text-right text-[color:var(--color-fg-muted)]">
-                      {formatPrice(p.current)}
+                      <div>{formatPrice(p.current)}</div>
+                      {p.status === "CLOSED" && p.closeDate ? (
+                        <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-fg-subtle)]">
+                          {p.closeDate}
+                        </div>
+                      ) : null}
                     </Td>
                     <Td
                       className={cn(
@@ -129,10 +143,7 @@ export function Positions() {
                       </Badge>
                     </Td>
                     <Td className="max-w-[280px]">
-                      <span className="line-clamp-1 text-[color:var(--color-fg-muted)]">
-                        {p.thesis}
-                      </span>
-                      <span className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--color-fg-subtle)]">
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--color-fg-subtle)]">
                         <Lock className="h-3 w-3" /> Members
                       </span>
                     </Td>
