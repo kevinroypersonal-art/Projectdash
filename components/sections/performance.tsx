@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { AS_OF, INCEPTION, daily } from "@/lib/positions";
+import { AS_OF, INCEPTION, PER_PICK_USD, daily } from "@/lib/positions";
 import { cn } from "@/lib/utils";
 
 const asOfDate = new Date(AS_OF);
@@ -40,35 +40,32 @@ function startIndex(range: Range): number {
   return 0;
 }
 
-const VIEW = { w: 1200, h: 360, padX: 56, padTop: 24, padBottom: 36 };
+const VIEW = { w: 1200, h: 360, padX: 72, padTop: 24, padBottom: 36 };
 
 type Slice = {
   dates: string[];
   nav: number[];
-  spx: number[];
-  navIdx: number[]; // rebased to 100 at window start
-  spxIdx: number[]; // rebased to 100 at window start
+  spxEq: number[];
+  contrib: number[];
 };
 
 function buildSlice(range: Range): Slice {
   const i0 = startIndex(range);
-  const dates = daily.dates.slice(i0);
-  const nav = daily.nav.slice(i0);
-  const spx = daily.spx.slice(i0);
-  const nav0 = nav[0]!;
-  const spx0 = spx[0]!;
-  const navIdx = nav.map((v) => (v / nav0) * 100);
-  const spxIdx = spx.map((v) => (v / spx0) * 100);
-  return { dates, nav, spx, navIdx, spxIdx };
+  return {
+    dates: daily.dates.slice(i0),
+    nav: daily.nav.slice(i0),
+    spxEq: daily.spxEq.slice(i0),
+    contrib: daily.contrib.slice(i0),
+  };
 }
 
 function buildGeometry(slice: Slice) {
   if (slice.dates.length < 2) return null;
-  const all = [...slice.navIdx, ...slice.spxIdx];
+  const all = [...slice.nav, ...slice.spxEq];
   const min = Math.min(...all);
   const max = Math.max(...all);
-  const pad = Math.max((max - min) * 0.08, max * 0.005);
-  const yMin = min - pad;
+  const pad = Math.max((max - min) * 0.08, max * 0.01);
+  const yMin = Math.max(0, min - pad);
   const yMax = max + pad;
 
   const startT = new Date(slice.dates[0]!).getTime();
@@ -82,13 +79,14 @@ function buildGeometry(slice: Slice) {
     return series.map((v, i) => {
       const t = new Date(slice.dates[i]!).getTime();
       const x = VIEW.padX + ((t - startT) / span) * innerW;
-      const y = VIEW.padTop + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
+      const y =
+        VIEW.padTop + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
       return [x, y] as const;
     });
   }
 
-  const navXY = xy(slice.navIdx);
-  const spxXY = xy(slice.spxIdx);
+  const navXY = xy(slice.nav);
+  const spxXY = xy(slice.spxEq);
 
   const toPath = (pts: readonly (readonly [number, number])[]) =>
     pts
@@ -167,15 +165,18 @@ function xTicks(range: Range, startT: number, endT: number, innerW: number) {
   return ticks;
 }
 
+function fmtUsd(v: number): string {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 10_000) return `${sign}$${(abs / 1_000).toFixed(0)}k`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}k`;
+  return `${sign}$${abs.toFixed(0)}`;
+}
+
 function fmtPct(v: number): string {
   const s = v >= 0 ? "+" : "";
   return `${s}${v.toFixed(2)}%`;
-}
-
-function fmtIndex(v: number): string {
-  if (v >= 1000) return v.toFixed(0);
-  if (v >= 100) return v.toFixed(1);
-  return v.toFixed(2);
 }
 
 export function Performance() {
@@ -185,26 +186,23 @@ export function Performance() {
 
   if (!geom) return null;
 
-  const navStart = slice.navIdx[0]!;
-  const navEnd = slice.navIdx[slice.navIdx.length - 1]!;
-  const spxEnd = slice.spxIdx[slice.spxIdx.length - 1]!;
-  const navRet = navEnd - 100;
-  const spxRet = spxEnd - 100;
-  const alpha = navRet - spxRet;
+  const navEnd = slice.nav[slice.nav.length - 1]!;
+  const spxEnd = slice.spxEq[slice.spxEq.length - 1]!;
+  const contribEnd = slice.contrib[slice.contrib.length - 1]!;
+  const multiple = contribEnd > 0 ? navEnd / contribEnd : 0;
+  const vsSpxPct = spxEnd > 0 ? (navEnd / spxEnd - 1) * 100 : 0;
 
-  const totalNavFromInception = daily.nav[daily.nav.length - 1]! - 100;
-
-  // Max NAV drawdown over the window.
-  let peak = slice.navIdx[0]!;
+  let peak = slice.nav[0]!;
   let maxDD = 0;
-  for (const v of slice.navIdx) {
+  for (const v of slice.nav) {
     peak = Math.max(peak, v);
-    const dd = (v - peak) / peak;
-    if (dd < maxDD) maxDD = dd;
+    if (peak > 0) {
+      const dd = (v - peak) / peak;
+      if (dd < maxDD) maxDD = dd;
+    }
   }
 
   const ticks = xTicks(range, geom.startT, geom.endT, geom.innerW);
-  const liveNav = daily.nav[daily.nav.length - 1]!;
 
   return (
     <section
@@ -215,8 +213,7 @@ export function Performance() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-fg-muted)]">
-              Daily NAV vs SPX · base 100 on{" "}
-              {range === "ALL" ? INCEPTION : slice.dates[0]}
+              ${PER_PICK_USD.toLocaleString()} per pick · No rebalancing · Daily MTM
             </span>
             <h2 className="mt-3 font-display text-3xl tracking-display text-white sm:text-4xl">
               Performance
@@ -248,24 +245,20 @@ export function Performance() {
         </div>
 
         <dl className="mt-8 grid grid-cols-2 gap-px border border-[color:var(--color-border)] bg-[color:var(--color-border)] font-mono sm:grid-cols-4">
-          <Stat label="The Hedge">
-            <span className={navRet >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
-              {fmtPct(navRet)}
-            </span>
+          <Stat label="NAV">
+            <span className="text-white">{fmtUsd(navEnd)}</span>
           </Stat>
-          <Stat label="SPX">
+          <Stat label="Contributed">
             <span className="text-[color:var(--color-fg-muted)]">
-              {fmtPct(spxRet)}
+              {fmtUsd(contribEnd)}
             </span>
           </Stat>
-          <Stat label="Alpha">
-            <span className={alpha >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
-              {fmtPct(alpha)}
-            </span>
+          <Stat label="Money multiple">
+            <span className="text-white">{multiple.toFixed(2)}×</span>
           </Stat>
-          <Stat label="Max drawdown">
-            <span className="text-[color:var(--color-fg-subtle)]">
-              {fmtPct(maxDD * 100)}
+          <Stat label="vs SPX">
+            <span className={vsSpxPct >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
+              {fmtPct(vsSpxPct)}
             </span>
           </Stat>
         </dl>
@@ -274,11 +267,14 @@ export function Performance() {
           <div className="mb-4 flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)]">
             <span className="flex items-center gap-2">
               <span className="inline-block h-px w-6 bg-white" />
-              The Hedge
+              The Hedge {fmtUsd(navEnd)}
             </span>
             <span className="flex items-center gap-2">
               <span className="inline-block h-px w-6 border-t border-dashed border-[color:var(--color-fg-subtle)]" />
-              SPX
+              SPX-equivalent {fmtUsd(spxEnd)}
+            </span>
+            <span className="ml-auto text-[color:var(--color-fg-subtle)]">
+              Max DD {fmtPct(maxDD * 100)}
             </span>
           </div>
 
@@ -287,7 +283,7 @@ export function Performance() {
             preserveAspectRatio="none"
             className="block h-[300px] w-full sm:h-[360px]"
             role="img"
-            aria-label={`NAV vs SPX, ${range} window`}
+            aria-label={`Portfolio dollar NAV vs SPX-equivalent, ${range} window`}
           >
             <defs>
               <linearGradient id="navFill" x1="0" y1="0" x2="0" y2="1">
@@ -312,37 +308,6 @@ export function Performance() {
               );
             })}
 
-            {/* Baseline at index = 100 */}
-            {(() => {
-              const innerH = VIEW.h - VIEW.padTop - VIEW.padBottom;
-              const y =
-                VIEW.padTop +
-                innerH -
-                ((100 - geom.yMin) / (geom.yMax - geom.yMin)) * innerH;
-              return (
-                <>
-                  <line
-                    x1={VIEW.padX}
-                    x2={VIEW.w - VIEW.padX}
-                    y1={y}
-                    y2={y}
-                    stroke="#2a2a2a"
-                    strokeDasharray="3 3"
-                  />
-                  <text
-                    x={VIEW.padX}
-                    y={y - 6}
-                    fill="#525252"
-                    fontFamily="var(--font-mono)"
-                    fontSize="10"
-                    letterSpacing="0.18em"
-                  >
-                    100
-                  </text>
-                </>
-              );
-            })()}
-
             <motion.path
               key={`area-${range}`}
               d={geom.navArea}
@@ -352,7 +317,6 @@ export function Performance() {
               transition={{ duration: 0.5, delay: 0.4 }}
             />
 
-            {/* SPX line — gray dashed */}
             <motion.path
               key={`spx-${range}`}
               d={geom.spxLine}
@@ -367,7 +331,6 @@ export function Performance() {
               transition={{ duration: 1.2, ease: "easeOut" }}
             />
 
-            {/* NAV line — white */}
             <motion.path
               key={`nav-${range}`}
               d={geom.navLine}
@@ -424,7 +387,7 @@ export function Performance() {
               fontSize="10"
               letterSpacing="0.18em"
             >
-              {fmtIndex(geom.yMax)}
+              {fmtUsd(geom.yMax)}
             </text>
             <text
               x={VIEW.padX - 8}
@@ -435,7 +398,7 @@ export function Performance() {
               fontSize="10"
               letterSpacing="0.18em"
             >
-              {fmtIndex(geom.yMin)}
+              {fmtUsd(geom.yMin)}
             </text>
           </svg>
 
@@ -444,7 +407,7 @@ export function Performance() {
               {slice.dates[0]} → {slice.dates[slice.dates.length - 1]}
             </span>
             <span>
-              NAV {fmtIndex(liveNav)} · Since inception {fmtPct(totalNavFromInception)}
+              Daily intra-period values modeled · entry &amp; exit prices are real
             </span>
           </div>
         </div>

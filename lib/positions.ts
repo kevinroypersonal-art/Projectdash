@@ -357,16 +357,30 @@ function buildSpx(inception: string, asOf: string) {
 
 // --- Portfolio NAV ----------------------------------------------------------
 
-function buildNav(rows: Position[], inception: string, asOf: string) {
+export const PER_PICK_USD = 1000;
+
+function buildPortfolio(
+  rows: Position[],
+  inception: string,
+  asOf: string,
+  spx: number[],
+) {
   const startMs = new Date(inception).getTime();
   const endMs = new Date(asOf).getTime();
   const totalDays = Math.round((endMs - startMs) / DAY_MS);
 
-  // Per-pick daily price path with deterministic noise.
-  const pStart: number[] = [];
-  const pEnd: number[] = [];
-  const pPath: number[][] = [];
-  rows.forEach((p, i) => {
+  // Each pick buys $1000 of stock at entry — share count is fixed for the
+  // life of the position. We never rebalance: if it 10×s, it stays 10× until
+  // we sell. The intra-period daily price is a deterministic Brownian bridge
+  // that lands exactly on the real entry and current/exit prices.
+  type PP = {
+    startDay: number;
+    endDay: number;
+    entry: number;
+    exit: number;
+    path: number[];
+  };
+  const pps: PP[] = rows.map((p, i) => {
     const ms0 = new Date(p.date).getTime();
     const ms1 =
       p.status === "CLOSED" && p.closeDate
@@ -374,29 +388,47 @@ function buildNav(rows: Position[], inception: string, asOf: string) {
         : endMs;
     const n = Math.max(1, Math.round((ms1 - ms0) / DAY_MS));
     const rng = mulberry32(strHash(`${p.ticker}|${p.date}|${i}`));
-    pPath.push(pricePath(p.entry, p.current, n, 0.025, rng));
-    pStart.push(Math.round((ms0 - startMs) / DAY_MS));
-    pEnd.push(Math.round((ms0 - startMs) / DAY_MS) + n);
+    const path = pricePath(p.entry, p.current, n, 0.025, rng);
+    const startDay = Math.round((ms0 - startMs) / DAY_MS);
+    return {
+      startDay,
+      endDay: startDay + n,
+      entry: p.entry,
+      exit: p.current,
+      path,
+    };
   });
 
-  const values: number[] = new Array(totalDays + 1);
-  let nav = 100;
-  values[0] = nav;
-  for (let d = 1; d <= totalDays; d++) {
-    let sum = 0;
-    let count = 0;
-    for (let i = 0; i < rows.length; i++) {
-      if (d > pStart[i]! && d <= pEnd[i]!) {
-        const off = d - pStart[i]!;
-        const path = pPath[i]!;
-        sum += path[off]! / path[off - 1]! - 1;
-        count += 1;
-      }
+  const nav = new Array(totalDays + 1).fill(0);
+  const spxEq = new Array(totalDays + 1).fill(0);
+  const contrib = new Array(totalDays + 1).fill(0);
+
+  for (let d = 0; d <= totalDays; d++) {
+    let n = 0;
+    let s = 0;
+    let c = 0;
+    for (const pp of pps) {
+      if (d < pp.startDay) continue;
+      // Hedge: shares × today's modeled price, or sale proceeds if closed.
+      const hedgeMult =
+        d <= pp.endDay
+          ? pp.path[d - pp.startDay]! / pp.entry
+          : pp.exit / pp.entry;
+      n += PER_PICK_USD * hedgeMult;
+      // SPX-equivalent: the same $1000 contributed at the same date, held in
+      // SPY for the same calendar period, then cash after the position is
+      // closed.
+      const spyAtStart = spx[pp.startDay]!;
+      const spyNow = d <= pp.endDay ? spx[d]! : spx[pp.endDay]!;
+      s += PER_PICK_USD * (spyNow / spyAtStart);
+      c += PER_PICK_USD;
     }
-    if (count > 0) nav *= 1 + sum / count;
-    values[d] = nav;
+    nav[d] = n;
+    spxEq[d] = s;
+    contrib[d] = c;
   }
-  return values;
+
+  return { nav, spxEq, contrib };
 }
 
 function buildDates(inception: string, asOf: string) {
@@ -412,9 +444,14 @@ function buildDates(inception: string, asOf: string) {
 
 export const daily = (() => {
   const dates = buildDates(INCEPTION, AS_OF);
-  const nav = buildNav(positions, INCEPTION, AS_OF);
   const spx = buildSpx(INCEPTION, AS_OF);
-  return { dates, nav, spx };
+  const { nav, spxEq, contrib } = buildPortfolio(
+    positions,
+    INCEPTION,
+    AS_OF,
+    spx,
+  );
+  return { dates, nav, spxEq, contrib };
 })();
 
 
