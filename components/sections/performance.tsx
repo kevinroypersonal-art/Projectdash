@@ -407,7 +407,7 @@ export function Performance() {
               {slice.dates[0]} → {slice.dates[slice.dates.length - 1]}
             </span>
             <span>
-              Daily intra-period values modeled · entry &amp; exit prices are real
+              Daily closes via Yahoo Finance · {daily.fallbackTickers.length > 0 ? `${daily.fallbackTickers.length} delisted ticker${daily.fallbackTickers.length === 1 ? "" : "s"} bridged` : "all tickers real"}
             </span>
           </div>
         </div>
