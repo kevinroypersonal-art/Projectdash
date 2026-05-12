@@ -7,7 +7,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="border-t border-[color:var(--color-border)] bg-black/40">
+    <footer className="border-t border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
       <div className="mx-auto max-w-7xl px-6 py-16 sm:px-10">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-xl space-y-4 text-xs leading-relaxed text-[color:var(--color-fg-muted)]">

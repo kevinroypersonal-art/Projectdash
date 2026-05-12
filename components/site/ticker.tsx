@@ -8,7 +8,7 @@ export function Ticker() {
   return (
     <div
       aria-label="Latest positions ticker"
-      className="relative w-full overflow-hidden border-y border-[color:var(--color-border)] bg-black/40 backdrop-blur"
+      className="relative w-full overflow-hidden border-y border-[color:var(--color-border)] bg-[color:var(--color-bg)]/80 backdrop-blur"
     >
       <div className="ticker-track flex w-max gap-10 py-3 font-mono text-[11px] uppercase tracking-[0.18em]">
         {stream.map((p, i) => {
