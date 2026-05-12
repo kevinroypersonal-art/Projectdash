@@ -215,7 +215,7 @@ export function Performance() {
             <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-fg-muted)]">
               ${PER_PICK_USD.toLocaleString()} per pick · No rebalancing · Daily MTM
             </span>
-            <h2 className="mt-3 font-display text-3xl tracking-display text-white sm:text-4xl">
+            <h2 className="mt-3 font-display text-3xl tracking-display text-[color:var(--color-fg)] sm:text-4xl">
               Performance
             </h2>
           </div>
@@ -234,8 +234,8 @@ export function Performance() {
                 className={cn(
                   "h-8 px-3 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors border",
                   range === r
-                    ? "border-white text-white"
-                    : "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-white",
+                    ? "border-[color:var(--color-fg)] text-[color:var(--color-fg)]"
+                    : "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-[color:var(--color-fg)]",
                 )}
               >
                 {r === "ALL" ? "All" : r}
@@ -246,7 +246,7 @@ export function Performance() {
 
         <dl className="mt-8 grid grid-cols-2 gap-px border border-[color:var(--color-border)] bg-[color:var(--color-border)] font-mono sm:grid-cols-4">
           <Stat label="NAV">
-            <span className="text-white">{fmtUsd(navEnd)}</span>
+            <span className="text-[color:var(--color-fg)]">{fmtUsd(navEnd)}</span>
           </Stat>
           <Stat label="Contributed">
             <span className="text-[color:var(--color-fg-muted)]">
@@ -254,10 +254,10 @@ export function Performance() {
             </span>
           </Stat>
           <Stat label="Money multiple">
-            <span className="text-white">{multiple.toFixed(2)}×</span>
+            <span className="text-[color:var(--color-fg)]">{multiple.toFixed(2)}×</span>
           </Stat>
           <Stat label="vs SPX">
-            <span className={vsSpxPct >= 0 ? "text-white" : "text-[color:var(--color-fg-subtle)]"}>
+            <span className={vsSpxPct >= 0 ? "text-[color:var(--color-fg)]" : "text-[color:var(--color-fg-subtle)]"}>
               {fmtPct(vsSpxPct)}
             </span>
           </Stat>
@@ -266,7 +266,7 @@ export function Performance() {
         <div className="mt-6 border border-[color:var(--color-border)] bg-[color:var(--color-surface)]/30 p-4 sm:p-6">
           <div className="mb-4 flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)]">
             <span className="flex items-center gap-2">
-              <span className="inline-block h-px w-6 bg-white" />
+              <span className="inline-block h-px w-6 bg-[color:var(--color-fg)]" />
               The Hedge {fmtUsd(navEnd)}
             </span>
             <span className="flex items-center gap-2">
@@ -287,8 +287,8 @@ export function Performance() {
           >
             <defs>
               <linearGradient id="navFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="0%" stopColor="var(--color-fg)" stopOpacity="0.16" />
+                <stop offset="100%" stopColor="var(--color-fg)" stopOpacity="0" />
               </linearGradient>
             </defs>
 
@@ -302,7 +302,7 @@ export function Performance() {
                   x2={VIEW.w - VIEW.padX}
                   y1={y}
                   y2={y}
-                  stroke="#1f1f1f"
+                  stroke="var(--color-border)"
                   strokeDasharray="2 4"
                 />
               );
@@ -321,7 +321,7 @@ export function Performance() {
               key={`spx-${range}`}
               d={geom.spxLine}
               fill="none"
-              stroke="#525252"
+              stroke="var(--color-fg-subtle)"
               strokeWidth="1"
               strokeDasharray="3 3"
               strokeLinecap="round"
@@ -335,7 +335,7 @@ export function Performance() {
               key={`nav-${range}`}
               d={geom.navLine}
               fill="none"
-              stroke="#ffffff"
+              stroke="var(--color-fg)"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -349,7 +349,7 @@ export function Performance() {
               cx={geom.navXY[geom.navXY.length - 1]![0]}
               cy={geom.navXY[geom.navXY.length - 1]![1]}
               r="3.5"
-              fill="#ffffff"
+              fill="var(--color-fg)"
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: 1.2 }}
@@ -362,13 +362,13 @@ export function Performance() {
                   x2={t.x}
                   y1={VIEW.h - VIEW.padBottom}
                   y2={VIEW.h - VIEW.padBottom + 4}
-                  stroke="#2a2a2a"
+                  stroke="var(--color-border-strong)"
                 />
                 <text
                   x={t.x}
                   y={VIEW.h - VIEW.padBottom + 18}
                   textAnchor="middle"
-                  fill="#525252"
+                  fill="var(--color-fg-subtle)"
                   fontFamily="var(--font-mono)"
                   fontSize="10"
                   letterSpacing="0.18em"
@@ -382,7 +382,7 @@ export function Performance() {
               x={VIEW.padX - 8}
               y={VIEW.padTop + 4}
               textAnchor="end"
-              fill="#525252"
+              fill="var(--color-fg-subtle)"
               fontFamily="var(--font-mono)"
               fontSize="10"
               letterSpacing="0.18em"
@@ -393,7 +393,7 @@ export function Performance() {
               x={VIEW.padX - 8}
               y={VIEW.h - VIEW.padBottom}
               textAnchor="end"
-              fill="#525252"
+              fill="var(--color-fg-subtle)"
               fontFamily="var(--font-mono)"
               fontSize="10"
               letterSpacing="0.18em"

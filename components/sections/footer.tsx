@@ -11,11 +11,11 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-16 sm:px-10">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-xl space-y-4 text-xs leading-relaxed text-[color:var(--color-fg-muted)]">
-            <p className="font-mono text-sm tracking-logo text-white">
+            <p className="font-mono text-sm tracking-logo text-[color:var(--color-fg)]">
               THE HEDGE
             </p>
             <p>
-              The Hedge est édité par <strong className="text-white">Glyphe SASU</strong>,
+              The Hedge est édité par <strong className="text-[color:var(--color-fg)]">Glyphe SASU</strong>,
               RCS Paris 9XX XXX XXX, siège social rue de Vézelay 75008 Paris.
             </p>
             <p>
@@ -41,7 +41,7 @@ export function Footer() {
               <a
                 key={l.label}
                 href={l.href}
-                className="transition-colors hover:text-white"
+                className="transition-colors hover:text-[color:var(--color-fg)]"
               >
                 {l.label}
               </a>

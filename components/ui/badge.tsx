@@ -8,7 +8,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClass: Record<Variant, string> = {
-  outline: "border-white/40 text-white",
+  outline: "border-[color:var(--color-border-strong)] text-[color:var(--color-fg)]",
   muted:
     "border-[color:var(--color-border-strong)] text-[color:var(--color-fg-muted)]",
 };

@@ -24,7 +24,7 @@ export function Hero() {
             Most hedge funds hide their plays.
           </span>
           <br />
-          <span className="text-white">The Hedge shows them.</span>
+          <span className="text-[color:var(--color-fg)]">The Hedge shows them.</span>
         </h1>
 
         <p className="mt-6 max-w-xl text-base text-[color:var(--color-fg-muted)] sm:text-lg">

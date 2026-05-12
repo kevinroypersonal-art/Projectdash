@@ -9,7 +9,7 @@ export function Card({
     <div
       className={cn(
         "group relative border border-[color:var(--color-border)] bg-[color:var(--color-surface)]/40",
-        "transition-colors hover:border-white/40 hover:ring-1 hover:ring-white/10",
+        "transition-colors hover:border-[color:var(--color-border-strong)] hover:ring-1 hover:ring-[color:var(--color-border-strong)]",
         className,
       )}
       {...props}
