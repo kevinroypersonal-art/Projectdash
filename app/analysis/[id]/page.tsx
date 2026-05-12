@@ -39,7 +39,7 @@ export default async function Page({
     <main className="relative mx-auto min-h-screen max-w-4xl px-6 py-32 sm:px-10">
       <Link
         href="/#positions"
-        className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)] transition-colors hover:text-white"
+        className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)] transition-colors hover:text-[color:var(--color-fg)]"
       >
         ← All positions
       </Link>
@@ -50,12 +50,12 @@ export default async function Page({
             {p.date} {p.closeDate ? `→ ${p.closeDate}` : "· Open"}
           </span>
           {p.isWinner ? (
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white">
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-fg)]">
               Winner
             </span>
           ) : null}
         </div>
-        <h1 className="font-mono text-5xl tracking-display text-white">
+        <h1 className="font-mono text-5xl tracking-display text-[color:var(--color-fg)]">
           {p.ticker}
         </h1>
         <div className="mt-2 flex items-center gap-3 font-mono text-sm">
@@ -66,7 +66,7 @@ export default async function Page({
           <span
             className={
               pnl >= 0
-                ? "text-white"
+                ? "text-[color:var(--color-fg)]"
                 : "text-[color:var(--color-fg-subtle)]"
             }
           >
@@ -77,19 +77,19 @@ export default async function Page({
 
       <dl className="mt-10 grid grid-cols-2 gap-px border border-[color:var(--color-border)] bg-[color:var(--color-border)] font-mono sm:grid-cols-4">
         <Stat label="Entry">
-          <span className="text-white">${formatPrice(p.entry)}</span>
+          <span className="text-[color:var(--color-fg)]">${formatPrice(p.entry)}</span>
         </Stat>
         <Stat label={p.status === "OPEN" ? "Current" : "Exit"}>
-          <span className="text-white">${formatPrice(p.current)}</span>
+          <span className="text-[color:var(--color-fg)]">${formatPrice(p.current)}</span>
         </Stat>
         <Stat label="Holding">
-          <span className="text-white">{holdDays}d</span>
+          <span className="text-[color:var(--color-fg)]">{holdDays}d</span>
         </Stat>
         <Stat label="Return">
           <span
             className={
               pnl >= 0
-                ? "text-white"
+                ? "text-[color:var(--color-fg)]"
                 : "text-[color:var(--color-fg-subtle)]"
             }
           >

@@ -12,8 +12,8 @@ export interface ButtonProps
 
 const variantClass: Record<Variant, string> = {
   outline:
-    "border border-[color:var(--color-border-strong)] text-[color:var(--color-fg)] hover:border-white hover:bg-white/[0.03]",
-  ghost: "text-[color:var(--color-fg-muted)] hover:text-white hover:bg-white/[0.04]",
+    "border border-[color:var(--color-border-strong)] text-[color:var(--color-fg)] hover:border-[color:var(--color-fg)] hover:bg-[color:var(--color-surface)]",
+  ghost: "text-[color:var(--color-fg-muted)] hover:text-[color:var(--color-fg)] hover:bg-[color:var(--color-surface)]",
 };
 
 const sizeClass: Record<Size, string> = {

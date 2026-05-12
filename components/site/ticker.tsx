@@ -21,7 +21,7 @@ export function Ticker() {
               <span className="text-[color:var(--color-fg-subtle)]">
                 {p.date}
               </span>
-              <span className="text-white">{p.ticker}</span>
+              <span className="text-[color:var(--color-fg)]">{p.ticker}</span>
               <span className="text-[color:var(--color-fg-muted)]">
                 {p.direction}
               </span>
@@ -31,7 +31,7 @@ export function Ticker() {
               <span
                 className={
                   pnl >= 0
-                    ? "text-white"
+                    ? "text-[color:var(--color-fg)]"
                     : "text-[color:var(--color-fg-subtle)]"
                 }
               >

@@ -24,7 +24,7 @@ export function WaitlistForm({ id, submitLabel = "Request access" }: Props) {
     return (
       <p
         id={id}
-        className="font-mono text-xs uppercase tracking-[0.18em] text-white"
+        className="font-mono text-xs uppercase tracking-[0.18em] text-[color:var(--color-fg)]"
       >
         You're on the list. Watch your inbox.
       </p>

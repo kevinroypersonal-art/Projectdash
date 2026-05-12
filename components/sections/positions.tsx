@@ -53,7 +53,7 @@ export function Positions() {
             <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-fg-muted)]">
               Live · Updated continuously
             </span>
-            <h2 className="mt-3 font-display text-3xl tracking-display text-white sm:text-4xl">
+            <h2 className="mt-3 font-display text-3xl tracking-display text-[color:var(--color-fg)] sm:text-4xl">
               Positions
             </h2>
           </div>
@@ -78,8 +78,8 @@ export function Positions() {
                   "h-8 px-3 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors",
                   "border",
                   filter === tab.id
-                    ? "border-white text-white"
-                    : "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-white",
+                    ? "border-[color:var(--color-fg)] text-[color:var(--color-fg)]"
+                    : "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-[color:var(--color-fg)]",
                 )}
               >
                 {tab.label}
@@ -128,7 +128,7 @@ export function Positions() {
                       {p.date}
                     </Td>
                     <Td>
-                      <span className="text-white">{p.ticker}</span>
+                      <span className="text-[color:var(--color-fg)]">{p.ticker}</span>
                       {p.isWinner ? (
                         <span className="ml-2 align-middle font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)]">
                           Winner
@@ -153,7 +153,7 @@ export function Positions() {
                       className={cn(
                         "text-right",
                         pnl >= 0
-                          ? "text-white"
+                          ? "text-[color:var(--color-fg)]"
                           : "text-[color:var(--color-fg-subtle)]",
                       )}
                     >
@@ -169,7 +169,7 @@ export function Positions() {
                     <Td className="max-w-[280px]">
                       <Link
                         href={href}
-                        className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--color-fg-muted)] transition-colors hover:text-white"
+                        className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--color-fg-muted)] transition-colors hover:text-[color:var(--color-fg)]"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Lock className="h-3 w-3" /> View analysis
@@ -221,7 +221,7 @@ export function Positions() {
         <div className="mt-6">
           <a
             href="#access"
-            className="inline-flex h-8 items-center px-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-fg-muted)] transition-colors hover:text-white"
+            className="inline-flex h-8 items-center px-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-fg-muted)] transition-colors hover:text-[color:var(--color-fg)]"
           >
             Unlock theses · Request access →
           </a>
@@ -272,8 +272,8 @@ function Pagination({
   const btnBase =
     "h-8 min-w-[2rem] px-2 inline-flex items-center justify-center border font-mono text-[11px] uppercase tracking-[0.16em] transition-colors";
   const inactive =
-    "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-white";
-  const active = "border-white text-white";
+    "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-[color:var(--color-fg)]";
+  const active = "border-[color:var(--color-fg)] text-[color:var(--color-fg)]";
   const disabled = "opacity-30 cursor-not-allowed hover:border-[color:var(--color-border)] hover:text-[color:var(--color-fg-muted)]";
 
   return (
@@ -355,7 +355,7 @@ function Stat({
       <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-subtle)]">
         {label}
       </dt>
-      <dd className="mt-2 font-mono text-2xl text-white">{children}</dd>
+      <dd className="mt-2 font-mono text-2xl text-[color:var(--color-fg)]">{children}</dd>
     </div>
   );
 }

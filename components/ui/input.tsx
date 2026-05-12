@@ -10,7 +10,7 @@ export const Input = React.forwardRef<
     className={cn(
       "h-10 w-full bg-transparent border border-[color:var(--color-border-strong)]",
       "px-3 text-sm text-[color:var(--color-fg)] placeholder:text-[color:var(--color-fg-subtle)]",
-      "transition-colors focus:border-white focus:outline-none",
+      "transition-colors focus:border-[color:var(--color-fg)] focus:outline-none",
       className,
     )}
     {...props}

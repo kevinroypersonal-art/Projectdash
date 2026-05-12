@@ -29,7 +29,7 @@ export function Method() {
         <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-fg-muted)]">
           How the book is run
         </span>
-        <h2 className="mt-3 font-display text-3xl tracking-display text-white sm:text-4xl">
+        <h2 className="mt-3 font-display text-3xl tracking-display text-[color:var(--color-fg)] sm:text-4xl">
           Method
         </h2>
 
@@ -42,7 +42,7 @@ export function Method() {
               <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-fg-subtle)]">
                 {c.tag}
               </span>
-              <h3 className="mt-4 font-display text-xl tracking-display text-white">
+              <h3 className="mt-4 font-display text-xl tracking-display text-[color:var(--color-fg)]">
                 {c.title}
               </h3>
               <p className="mt-3 text-sm text-[color:var(--color-fg-muted)]">
@@ -50,7 +50,7 @@ export function Method() {
               </p>
               <a
                 href="#access"
-                className="mt-6 inline-block font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)] underline-offset-4 transition-colors hover:text-white hover:underline"
+                className="mt-6 inline-block font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)] underline-offset-4 transition-colors hover:text-[color:var(--color-fg)] hover:underline"
               >
                 Learn more →
               </a>

@@ -7,7 +7,7 @@ export function FinalCta() {
       className="relative border-t border-[color:var(--color-border)]"
     >
       <div className="mx-auto max-w-3xl px-6 py-28 text-center sm:px-10 sm:py-36">
-        <h2 className="font-display text-4xl tracking-display text-white sm:text-5xl">
+        <h2 className="font-display text-4xl tracking-display text-[color:var(--color-fg)] sm:text-5xl">
           The doors are open.
         </h2>
         <p className="mt-4 text-[color:var(--color-fg-muted)] sm:text-lg">

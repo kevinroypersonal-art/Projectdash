@@ -24,7 +24,7 @@ export function Comparison() {
         <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-fg-muted)]">
           What you get
         </span>
-        <h2 className="mt-3 font-display text-3xl tracking-display text-white sm:text-4xl">
+        <h2 className="mt-3 font-display text-3xl tracking-display text-[color:var(--color-fg)] sm:text-4xl">
           Public vs Members
         </h2>
 
@@ -66,7 +66,7 @@ function Column({
       <div className="flex items-baseline justify-between">
         <h3
           className={`font-mono text-xs uppercase tracking-[0.22em] ${
-            highlighted ? "text-white" : "text-[color:var(--color-fg-muted)]"
+            highlighted ? "text-[color:var(--color-fg)]" : "text-[color:var(--color-fg-muted)]"
           }`}
         >
           {label}
@@ -84,7 +84,7 @@ function Column({
             <span
               className={`mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center border ${
                 highlighted
-                  ? "border-white text-white"
+                  ? "border-[color:var(--color-fg)] text-[color:var(--color-fg)]"
                   : "border-[color:var(--color-border-strong)] text-[color:var(--color-fg-muted)]"
               }`}
             >
