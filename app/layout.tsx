@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import "./globals.css";
 
 const inter = Inter_Tight({
@@ -34,20 +36,41 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${mono.variable}`}
-      style={
-        {
-          "--font-sans": "var(--font-inter-tight)",
-          "--font-mono": "var(--font-jetbrains-mono)",
-          "--font-display": "var(--font-inter-tight)",
-        } as React.CSSProperties
-      }
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: "#ffffff",
+          colorBackground: "#0a0a0a",
+          colorInputBackground: "#141414",
+          colorInputText: "#fafafa",
+          colorText: "#fafafa",
+          colorTextSecondary: "#a1a1a1",
+          fontFamily: "var(--font-inter-tight)",
+          borderRadius: "0",
+        },
+        elements: {
+          card: "border border-[color:var(--color-border)] bg-[color:var(--color-surface)]",
+          formButtonPrimary:
+            "bg-white text-black hover:bg-white/90 font-mono uppercase tracking-[0.16em] text-xs rounded-none",
+        },
+      }}
     >
-      <body className="min-h-screen bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
-        {children}
-      </body>
-    </html>
+      <html
+        lang="en"
+        className={`${inter.variable} ${mono.variable}`}
+        style={
+          {
+            "--font-sans": "var(--font-inter-tight)",
+            "--font-mono": "var(--font-jetbrains-mono)",
+            "--font-display": "var(--font-inter-tight)",
+          } as React.CSSProperties
+        }
+      >
+        <body className="min-h-screen bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
