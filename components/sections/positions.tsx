@@ -10,8 +10,11 @@ import { formatPct, formatPrice, cn } from "@/lib/utils";
 
 type Filter = "all" | "open" | "closed";
 
+const PAGE_SIZE = 10;
+
 export function Positions() {
   const [filter, setFilter] = React.useState<Filter>("all");
+  const [page, setPage] = React.useState(1);
 
   const rows = React.useMemo(() => {
     if (filter === "open") return positions.filter((p) => p.status === "OPEN");
@@ -19,6 +22,16 @@ export function Positions() {
       return positions.filter((p) => p.status === "CLOSED");
     return positions;
   }, [filter]);
+
+  // Reset to the first page whenever the filter changes.
+  React.useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = rows.slice(pageStart, pageStart + PAGE_SIZE);
 
   const stats = React.useMemo(() => aggregateStats(positions), []);
 
@@ -87,16 +100,14 @@ export function Positions() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p, i) => {
+              {pageRows.map((p, i) => {
                 const pnl = pctChange(p);
-                // Cap stagger so deep rows don't sit idle for seconds.
-                const delay = Math.min(i, 18) * 0.04;
+                const delay = Math.min(i, 9) * 0.04;
                 return (
                   <motion.tr
-                    key={`${p.ticker}-${p.date}-${p.closeDate ?? "open"}`}
+                    key={`${p.ticker}-${p.date}-${p.closeDate ?? "open"}-${pageStart + i}`}
                     initial={{ opacity: 0, y: 4 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "0px 0px -4% 0px" }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, delay }}
                     className="border-b border-[color:var(--color-border)] transition-colors hover:bg-[color:var(--color-surface)]"
                   >
@@ -153,6 +164,15 @@ export function Positions() {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          onChange={setPage}
+          total={rows.length}
+          pageStart={pageStart}
+          pageEnd={Math.min(pageStart + PAGE_SIZE, rows.length)}
+        />
 
         <dl className="mt-8 grid grid-cols-2 gap-px border border-[color:var(--color-border)] bg-[color:var(--color-border)] sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Total positions">
@@ -213,6 +233,96 @@ function Td({
   className?: string;
 }) {
   return <td className={cn("px-4 py-3 align-top", className)}>{children}</td>;
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onChange,
+  total,
+  pageStart,
+  pageEnd,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (n: number) => void;
+  total: number;
+  pageStart: number;
+  pageEnd: number;
+}) {
+  const pageNumbers = buildPageRange(page, totalPages);
+  const btnBase =
+    "h-8 min-w-[2rem] px-2 inline-flex items-center justify-center border font-mono text-[11px] uppercase tracking-[0.16em] transition-colors";
+  const inactive =
+    "border-[color:var(--color-border)] text-[color:var(--color-fg-muted)] hover:border-[color:var(--color-border-strong)] hover:text-white";
+  const active = "border-white text-white";
+  const disabled = "opacity-30 cursor-not-allowed hover:border-[color:var(--color-border)] hover:text-[color:var(--color-fg-muted)]";
+
+  return (
+    <nav
+      aria-label="Positions pagination"
+      className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-fg-muted)]"
+    >
+      <span className="text-[color:var(--color-fg-subtle)]">
+        {total === 0 ? 0 : pageStart + 1}–{pageEnd} of {total}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          aria-label="Previous page"
+          className={cn(btnBase, inactive, page <= 1 && disabled)}
+        >
+          ←
+        </button>
+        {pageNumbers.map((n, i) =>
+          n === "…" ? (
+            <span
+              key={`gap-${i}`}
+              className="px-2 text-[color:var(--color-fg-subtle)]"
+              aria-hidden
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={n}
+              type="button"
+              aria-current={n === page ? "page" : undefined}
+              onClick={() => onChange(n)}
+              className={cn(btnBase, n === page ? active : inactive)}
+            >
+              {n}
+            </button>
+          ),
+        )}
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          aria-label="Next page"
+          className={cn(btnBase, inactive, page >= totalPages && disabled)}
+        >
+          →
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+function buildPageRange(page: number, total: number): (number | "…")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const out: (number | "…")[] = [1];
+  const left = Math.max(2, page - 1);
+  const right = Math.min(total - 1, page + 1);
+  if (left > 2) out.push("…");
+  for (let i = left; i <= right; i++) out.push(i);
+  if (right < total - 1) out.push("…");
+  out.push(total);
+  return out;
 }
 
 function Stat({
