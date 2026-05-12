@@ -168,6 +168,15 @@ export const positions: Position[] = [
   closed("2022-07-01", "2024-09-12", "AMR", 127.13, 202.79),
 ];
 
+export function positionId(p: Position): string {
+  const close = p.closeDate ?? "open";
+  return `${p.ticker.toLowerCase().replace(/[^a-z0-9]/g, "")}-${p.date}-${close}`;
+}
+
+export function findPositionById(id: string): Position | undefined {
+  return positions.find((p) => positionId(p) === id);
+}
+
 export function pctChange(p: Position): number {
   const raw =
     p.direction === "LONG"

@@ -1,11 +1,17 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
+import { Lock, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CountUp } from "@/components/site/count-up";
-import { positions, pctChange, aggregateStats } from "@/lib/positions";
+import {
+  positions,
+  pctChange,
+  aggregateStats,
+  positionId,
+} from "@/lib/positions";
 import { formatPct, formatPrice, cn } from "@/lib/utils";
 
 type Filter = "all" | "open" | "closed";
@@ -103,13 +109,20 @@ export function Positions() {
               {pageRows.map((p, i) => {
                 const pnl = pctChange(p);
                 const delay = Math.min(i, 9) * 0.04;
+                const href = `/analysis/${positionId(p)}`;
                 return (
                   <motion.tr
                     key={`${p.ticker}-${p.date}-${p.closeDate ?? "open"}-${pageStart + i}`}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, delay }}
-                    className="border-b border-[color:var(--color-border)] transition-colors hover:bg-[color:var(--color-surface)]"
+                    className="group cursor-pointer border-b border-[color:var(--color-border)] transition-colors hover:bg-[color:var(--color-surface)]"
+                    onClick={(e) => {
+                      // Don't fight nested links / interactive children.
+                      const target = e.target as HTMLElement;
+                      if (target.closest("a, button")) return;
+                      window.location.href = href;
+                    }}
                   >
                     <Td className="text-[color:var(--color-fg-subtle)]">
                       {p.date}
@@ -154,9 +167,14 @@ export function Positions() {
                       </Badge>
                     </Td>
                     <Td className="max-w-[280px]">
-                      <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--color-fg-subtle)]">
-                        <Lock className="h-3 w-3" /> Members
-                      </span>
+                      <Link
+                        href={href}
+                        className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--color-fg-muted)] transition-colors hover:text-white"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Lock className="h-3 w-3" /> View analysis
+                        <ChevronRight className="h-3 w-3 -ml-0.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                      </Link>
                     </Td>
                   </motion.tr>
                 );
