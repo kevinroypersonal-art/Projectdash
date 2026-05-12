@@ -91,7 +91,7 @@ export function Positions() {
           </div>
         </div>
 
-        <div className="mt-10 overflow-x-auto border border-[color:var(--color-border)] bg-black/30">
+        <div className="mt-10 overflow-x-auto border border-[color:var(--color-border)] bg-[color:var(--color-bg)]">
           <table className="min-w-[920px] w-full text-left font-mono text-sm">
             <thead>
               <tr className="border-b border-[color:var(--color-border)] text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-subtle)]">

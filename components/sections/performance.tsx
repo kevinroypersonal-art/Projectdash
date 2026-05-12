@@ -263,7 +263,7 @@ export function Performance() {
           </Stat>
         </dl>
 
-        <div className="mt-6 border border-[color:var(--color-border)] bg-[color:var(--color-surface)]/30 p-4 sm:p-6">
+        <div className="mt-6 border border-[color:var(--color-border)] bg-[color:var(--color-bg)] p-4 sm:p-6">
           <div className="mb-4 flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-fg-muted)]">
             <span className="flex items-center gap-2">
               <span className="inline-block h-px w-6 bg-[color:var(--color-fg)]" />

@@ -24,10 +24,10 @@
 
 /* Light theme overrides — flipped via <html class="light"> by next-themes. */
 .light {
-  --color-bg: #fafafa;
+  --color-bg: #ffffff;
   --color-surface: #f4f4f5;
-  --color-border: #e5e5e5;
-  --color-border-strong: #d4d4d8;
+  --color-border: #0a0a0a;
+  --color-border-strong: #0a0a0a;
   --color-fg: #0a0a0a;
   --color-fg-muted: #525252;
   --color-fg-subtle: #a3a3a3;
