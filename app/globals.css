@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@theme {
+  /* Dark palette — defaults. */
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-border: #1f1f1f;
+  --color-border-strong: #2a2a2a;
+  --color-fg: #fafafa;
+  --color-fg-muted: #a1a1a1;
+  --color-fg-subtle: #525252;
+  --color-accent: #ffffff;
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+}
+
+/* RGB component triple of --color-fg, used in rgba()-style gradients
+   (meteors, spotlight) so they re-theme automatically. */
+:root {
+  --color-fg-rgb: 250 250 250;
+}
+
+/* Light theme overrides — flipped via <html class="light"> by next-themes. */
+.light {
+  --color-bg: #ffffff;
+  --color-surface: #f4f4f5;
+  --color-border: #0a0a0a;
+  --color-border-strong: #0a0a0a;
+  --color-fg: #0a0a0a;
+  --color-fg-muted: #525252;
+  --color-fg-subtle: #a3a3a3;
+  --color-accent: #0a0a0a;
+  --color-fg-rgb: 10 10 10;
+  color-scheme: light;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .font-mono,
+  [class*="font-mono"] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  ::selection {
+    background-color: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  *:focus-visible {
+    outline: 1px solid var(--color-fg);
+    outline-offset: 2px;
+  }
+
+  /* Subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-strong);
+  }
+}
+
+@layer utilities {
+  .tracking-display {
+    letter-spacing: -0.02em;
+  }
+  .tracking-logo {
+    letter-spacing: 0.2em;
+  }
+
+  .ticker-track {
+    animation: ticker 60s linear infinite;
+  }
+
+  @keyframes ticker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .meteor {
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    background: linear-gradient(
+      to bottom,
+      rgb(var(--color-fg-rgb) / 0) 0%,
+      rgb(var(--color-fg-rgb) / 0.6) 40%,
+      rgb(var(--color-fg-rgb) / 0) 100%
+    );
+    border-radius: 9999px;
+    box-shadow: 0 0 0 1px rgb(var(--color-fg-rgb) / 0.06);
+    transform: rotate(215deg);
+    animation: meteor linear infinite;
+  }
+
+  .meteor::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-fg-rgb) / 0.5),
+      rgb(var(--color-fg-rgb) / 0)
+    );
+  }
+
+  @keyframes meteor {
+    0% {
+      transform: rotate(215deg) translateX(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    100% {
+      transform: rotate(215deg) translateX(-1200px);
+      opacity: 0;
+    }
+  }
+
+  .grid-mask {
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      black 30%,
+      transparent 80%
+    );
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      black 30%,
+      transparent 80%
+    );
+  }
+}
